@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="CoreProject.Backend.API.IntegrationTests/CoreProject.Backend.API.IntegrationTests.csproj" />
+  <Project Path="CoreProject.Backend.API/CoreProject.Backend.API.csproj" />
+  <Project Path="CoreProject.Backend.Application.UnitTests/CoreProject.Backend.Application.UnitTests.csproj" />
+  <Project Path="CoreProject.Backend.Application/CoreProject.Backend.Application.csproj" />
+  <Project Path="CoreProject.Backend.Domain/CoreProject.Backend.Domain.csproj" />
+  <Project Path="CoreProject.Backend.Infrastructure/CoreProject.Backend.Infrastructure.csproj" />
+</Solution>

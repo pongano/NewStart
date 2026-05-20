@@ -1,0 +1,8 @@
+@CoreProject.Backend.API_HostAddress = https://localhost:7116
+
+GET {{CoreProject.Backend.API_HostAddress}}/health
+
+###
+
+GET {{CoreProject.Backend.API_HostAddress}}/api/system/info
+Accept: application/json
