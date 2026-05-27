@@ -23,7 +23,7 @@
 ## 4. Active Implementation Queue
 
 ### P0-01: Configure Local Development Database
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - prepare a real PostgreSQL connection for local/dev use
 - Work:
@@ -34,6 +34,13 @@
 - Acceptance:
   - backend can start with a real PostgreSQL database
   - initial migration is applied successfully
+- Progress:
+  - Docker Compose PostgreSQL setup prepared with host port `54320` and default database `coreproject_backend_dev`
+  - EF Core design-time factory now defaults to the same local development database
+  - local `dotnet-ef` tool manifest added
+  - PostgreSQL container started successfully and reported healthy
+  - initial EF Core migration applied successfully to the Docker database
+  - backend API started successfully and `/health` returned `Healthy`
 
 ### P0-02: Create Identity Module Skeleton
 - Status: `TODO`
@@ -348,4 +355,3 @@
 - Keep this file aligned with:
   - [AI_PROJECT_HANDOFF.md](E:\Project\NewStart\AI_PROJECT_HANDOFF.md)
   - [PROJECT_PLAN.md](E:\Project\NewStart\PROJECT_PLAN.md)
-

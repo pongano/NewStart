@@ -8,8 +8,8 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<App
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        var connectionString =
-            "Host=localhost;Port=5432;Database=coreproject_backend;Username=postgres;Password=postgres";
+        var connectionString = Environment.GetEnvironmentVariable("NEWSTART_CONNECTION_STRING")
+            ?? "Host=localhost;Port=54320;Database=coreproject_backend_dev;Username=postgres;Password=postgres";
 
         optionsBuilder.UseNpgsql(connectionString);
 

@@ -36,14 +36,21 @@
   - [pongano/NewStart](https://github.com/pongano/NewStart.git)
 - Current known initial commit:
   - `0a93a5e` - `Initialize repository and scaffold backend foundation`
+- Current known latest commit before 2026-05-27 local database setup work:
+  - `6a91422` - `Add implementation task list`
 - Working tree status when this file was created:
   - clean
 
 ## 5. Current Project Structure
 - Root:
+  - [.config/dotnet-tools.json](E:\Project\NewStart\.config\dotnet-tools.json)
+  - [docker-compose.yml](E:\Project\NewStart\docker-compose.yml)
+  - [LOCAL_DEVELOPMENT.md](E:\Project\NewStart\LOCAL_DEVELOPMENT.md)
+  - [.env.example](E:\Project\NewStart\.env.example)
   - [PROJECT_PLAN.md](E:\Project\NewStart\PROJECT_PLAN.md)
   - [TODAY_SUMMARY_2026-05-20.md](E:\Project\NewStart\TODAY_SUMMARY_2026-05-20.md)
   - [TODAY_SUMMARY_2026-05-21.md](E:\Project\NewStart\TODAY_SUMMARY_2026-05-21.md)
+  - [TODAY_SUMMARY_2026-05-27.md](E:\Project\NewStart\TODAY_SUMMARY_2026-05-27.md)
   - [AI_PROJECT_HANDOFF.md](E:\Project\NewStart\AI_PROJECT_HANDOFF.md)
 - Backend:
   - [CoreProject.Backend.slnx](E:\Project\NewStart\Backend\CoreProject.Backend.slnx)
@@ -54,8 +61,7 @@
   - `CoreProject.Backend.Application.UnitTests`
   - `CoreProject.Backend.API.IntegrationTests`
 - Frontend:
-  - folder exists
-  - no Angular app scaffolded yet
+  - no frontend folder or Angular app scaffolded yet in this checkout
 
 ## 6. Current Backend Implementation Status
 
@@ -65,6 +71,9 @@
   - `.NET 8`
 - Dependency injection wiring completed
 - PostgreSQL + EF Core wiring completed
+- Docker Compose PostgreSQL development setup added
+- Docker development PostgreSQL uses host port `54320` by default because local port `5432` may already be occupied
+- Local .NET tool manifest added for `dotnet-ef`
 - Initial `DbContext` created
 - Initial migration created
 - Swagger enabled in development
@@ -101,7 +110,6 @@
 - No real `AccessControl` module yet
 - No real `User / Role / Permission / Menu` entities yet
 - No frontend app yet
-- No live PostgreSQL database update executed in this workspace yet
 - No production deployment setup yet
 
 ## 8. Important Requirements and Constraints
@@ -137,7 +145,14 @@
   - application unit tests passed
   - API integration tests passed
   - initial EF migration generation passed
-- `dotnet ef database update` has not been confirmed against a real PostgreSQL instance in this environment
+- Docker Compose PostgreSQL configuration has been prepared and config validation passed
+- Initial Docker startup pulled the image but failed on host port `5432`; setup was adjusted to host port `54320`
+- Docker PostgreSQL container was then started successfully and reported healthy
+- First EF database update attempt failed because `dotnet-ef` was missing on PATH; a local tool manifest was added
+- Local `dotnet-ef` tool restore passed
+- `dotnet ef database update` passed against the Docker PostgreSQL database
+- Initial migration `20260520200331_InitialCreate` applied successfully
+- Backend API smoke test passed in `Development`; `GET /health` returned `200 OK` and `Healthy`
 
 ## 10. Recommended Next Work
 - Create `Identity` module skeleton
@@ -148,8 +163,6 @@
   - permission
   - menu
 - Define first application use cases and contracts
-- Configure a real local/dev PostgreSQL connection
-- Run database update against PostgreSQL
 - Start frontend scaffold after backend module direction is clearer
 
 ## 11. Handoff Rules for Another AI / Machine
@@ -217,6 +230,38 @@
 - Added initial migration
 - Pushed repository to GitHub
 
+### 2026-05-27
+- Machine/agent:
+  - Codex
+- Main outcome:
+  - Prepared Docker-based PostgreSQL local development setup
+- Code areas changed:
+  - root Docker/local development files
+  - EF Core design-time DbContext factory
+  - implementation tracking docs
+- Validation performed:
+  - `docker compose config`
+  - `dotnet build Backend/CoreProject.Backend.Infrastructure/CoreProject.Backend.Infrastructure.csproj --no-restore --disable-build-servers -v:minimal`
+  - `dotnet build Backend/CoreProject.Backend.API/CoreProject.Backend.API.csproj --no-restore --disable-build-servers -v:minimal`
+  - attempted `docker compose up -d postgres`
+  - `docker compose ps postgres`
+  - `docker compose exec -T postgres pg_isready -U postgres -d coreproject_backend_dev`
+  - attempted `dotnet ef database update --project Backend/CoreProject.Backend.Infrastructure --startup-project Backend/CoreProject.Backend.API`
+  - `dotnet tool restore`
+  - `dotnet ef database update --project Backend/CoreProject.Backend.Infrastructure --startup-project Backend/CoreProject.Backend.API`
+  - ran backend API in `Development`
+  - `curl -i http://localhost:5046/health`
+- Result:
+  - passed
+- Open issues:
+  - first Docker startup attempt failed because local host port `5432` was already in use; Docker setup was adjusted to host port `54320`
+  - PostgreSQL container is now running and healthy on host port `54320`
+  - `dotnet-ef` was not installed on PATH; local tool manifest was added and restored successfully
+  - backend API health check returned `Healthy`
+  - no remaining database setup blocker for local development
+- Next recommended step:
+  - create `Identity` module skeleton
+
 ## 14. Update Template For Future Editors
 - Copy and append this block under `Work Log` when another machine completes work:
 
@@ -252,4 +297,3 @@
   - inspect latest migrations
 - If starting new feature:
   - update this file before finishing
-
