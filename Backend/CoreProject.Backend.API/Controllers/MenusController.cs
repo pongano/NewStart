@@ -1,3 +1,4 @@
+using CoreProject.Backend.API.Security;
 using CoreProject.Backend.Application.AccessControl.Menus;
 using CoreProject.Backend.Application.AccessControl.Menus.CreateMenu;
 using CoreProject.Backend.Application.AccessControl.Menus.DeleteMenu;
@@ -7,12 +8,15 @@ using CoreProject.Backend.Application.AccessControl.Menus.UpdateMenu;
 using CoreProject.Backend.Application.AccessControl.MenuPermissions;
 using CoreProject.Backend.Application.AccessControl.MenuPermissions.AssignPermissionToMenu;
 using CoreProject.Backend.Application.AccessControl.MenuPermissions.ListPermissionsByMenu;
+using CoreProject.Backend.Application.AccessControl.MenuPermissions.ReplaceMenuPermissions;
+using CoreProject.Backend.Application.Common.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreProject.Backend.API.Controllers;
 
 [ApiController]
 [Route("api/menus")]
+[RequirePermission(PermissionCodes.MenusManage)]
 public sealed class MenusController : ApiControllerBase
 {
     private readonly CreateMenuCommandHandler _createMenuCommandHandler;
@@ -22,6 +26,7 @@ public sealed class MenusController : ApiControllerBase
     private readonly ListMenusQueryHandler _listMenusQueryHandler;
     private readonly AssignPermissionToMenuCommandHandler _assignPermissionToMenuCommandHandler;
     private readonly ListPermissionsByMenuQueryHandler _listPermissionsByMenuQueryHandler;
+    private readonly ReplaceMenuPermissionsCommandHandler _replaceMenuPermissionsCommandHandler;
 
     public MenusController(
         CreateMenuCommandHandler createMenuCommandHandler,
@@ -30,7 +35,8 @@ public sealed class MenusController : ApiControllerBase
         GetMenuByIdQueryHandler getMenuByIdQueryHandler,
         ListMenusQueryHandler listMenusQueryHandler,
         AssignPermissionToMenuCommandHandler assignPermissionToMenuCommandHandler,
-        ListPermissionsByMenuQueryHandler listPermissionsByMenuQueryHandler)
+        ListPermissionsByMenuQueryHandler listPermissionsByMenuQueryHandler,
+        ReplaceMenuPermissionsCommandHandler replaceMenuPermissionsCommandHandler)
     {
         _createMenuCommandHandler = createMenuCommandHandler;
         _updateMenuCommandHandler = updateMenuCommandHandler;
@@ -39,6 +45,7 @@ public sealed class MenusController : ApiControllerBase
         _listMenusQueryHandler = listMenusQueryHandler;
         _assignPermissionToMenuCommandHandler = assignPermissionToMenuCommandHandler;
         _listPermissionsByMenuQueryHandler = listPermissionsByMenuQueryHandler;
+        _replaceMenuPermissionsCommandHandler = replaceMenuPermissionsCommandHandler;
     }
 
     [HttpPost]
@@ -135,6 +142,7 @@ public sealed class MenusController : ApiControllerBase
     }
 
     [HttpPost("{menuId:guid}/permissions/{permissionId:guid}")]
+    [RequirePermission(PermissionCodes.MenuPermissionsManage)]
     [ProducesResponseType<MenuPermissionResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<MenuPermissionResponse>> AssignPermission(
@@ -154,6 +162,7 @@ public sealed class MenusController : ApiControllerBase
     }
 
     [HttpGet("{menuId:guid}/permissions")]
+    [RequirePermission(PermissionCodes.MenuPermissionsManage)]
     [ProducesResponseType<IReadOnlyCollection<MenuPermissionResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyCollection<MenuPermissionResponse>>> ListPermissions(
@@ -162,6 +171,26 @@ public sealed class MenusController : ApiControllerBase
     {
         var response = await _listPermissionsByMenuQueryHandler.HandleAsync(
             new ListPermissionsByMenuQuery { MenuId = menuId },
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPut("{menuId:guid}/permissions")]
+    [RequirePermission(PermissionCodes.MenuPermissionsManage)]
+    [ProducesResponseType<IReadOnlyCollection<MenuPermissionResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyCollection<MenuPermissionResponse>>> ReplacePermissions(
+        Guid menuId,
+        [FromBody] ReplaceMenuPermissionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _replaceMenuPermissionsCommandHandler.HandleAsync(
+            new ReplaceMenuPermissionsCommand
+            {
+                MenuId = menuId,
+                PermissionIds = request.PermissionIds
+            },
             cancellationToken);
 
         return Ok(response);
@@ -199,5 +228,10 @@ public sealed class MenusController : ApiControllerBase
         public bool? IsVisible { get; set; }
 
         public Guid? ParentId { get; set; }
+    }
+
+    public sealed class ReplaceMenuPermissionsRequest
+    {
+        public IReadOnlyCollection<Guid> PermissionIds { get; set; } = [];
     }
 }

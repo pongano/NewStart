@@ -1,19 +1,25 @@
+using CoreProject.Backend.API.Security;
+using CoreProject.Backend.Application.AccessControl.Menus;
 using CoreProject.Backend.Application.AccessControl.RolePermissions;
 using CoreProject.Backend.Application.AccessControl.RolePermissions.AssignPermissionToRole;
 using CoreProject.Backend.Application.AccessControl.RolePermissions.ListPermissionsByRole;
 using CoreProject.Backend.Application.AccessControl.RolePermissions.RemovePermissionFromRole;
+using CoreProject.Backend.Application.AccessControl.RolePermissions.ReplaceRolePermissions;
 using CoreProject.Backend.Application.AccessControl.Roles;
 using CoreProject.Backend.Application.AccessControl.Roles.CreateRole;
 using CoreProject.Backend.Application.AccessControl.Roles.DeleteRole;
 using CoreProject.Backend.Application.AccessControl.Roles.GetRoleById;
+using CoreProject.Backend.Application.AccessControl.Roles.ListMenusByRole;
 using CoreProject.Backend.Application.AccessControl.Roles.ListRoles;
 using CoreProject.Backend.Application.AccessControl.Roles.UpdateRole;
+using CoreProject.Backend.Application.Common.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreProject.Backend.API.Controllers;
 
 [ApiController]
 [Route("api/roles")]
+[RequirePermission(PermissionCodes.RolesManage)]
 public sealed class RolesController : ApiControllerBase
 {
     private readonly CreateRoleCommandHandler _createRoleCommandHandler;
@@ -24,6 +30,8 @@ public sealed class RolesController : ApiControllerBase
     private readonly AssignPermissionToRoleCommandHandler _assignPermissionToRoleCommandHandler;
     private readonly ListPermissionsByRoleQueryHandler _listPermissionsByRoleQueryHandler;
     private readonly RemovePermissionFromRoleCommandHandler _removePermissionFromRoleCommandHandler;
+    private readonly ReplaceRolePermissionsCommandHandler _replaceRolePermissionsCommandHandler;
+    private readonly ListMenusByRoleQueryHandler _listMenusByRoleQueryHandler;
 
     public RolesController(
         CreateRoleCommandHandler createRoleCommandHandler,
@@ -33,7 +41,9 @@ public sealed class RolesController : ApiControllerBase
         ListRolesQueryHandler listRolesQueryHandler,
         AssignPermissionToRoleCommandHandler assignPermissionToRoleCommandHandler,
         ListPermissionsByRoleQueryHandler listPermissionsByRoleQueryHandler,
-        RemovePermissionFromRoleCommandHandler removePermissionFromRoleCommandHandler)
+        RemovePermissionFromRoleCommandHandler removePermissionFromRoleCommandHandler,
+        ReplaceRolePermissionsCommandHandler replaceRolePermissionsCommandHandler,
+        ListMenusByRoleQueryHandler listMenusByRoleQueryHandler)
     {
         _createRoleCommandHandler = createRoleCommandHandler;
         _updateRoleCommandHandler = updateRoleCommandHandler;
@@ -43,6 +53,8 @@ public sealed class RolesController : ApiControllerBase
         _assignPermissionToRoleCommandHandler = assignPermissionToRoleCommandHandler;
         _listPermissionsByRoleQueryHandler = listPermissionsByRoleQueryHandler;
         _removePermissionFromRoleCommandHandler = removePermissionFromRoleCommandHandler;
+        _replaceRolePermissionsCommandHandler = replaceRolePermissionsCommandHandler;
+        _listMenusByRoleQueryHandler = listMenusByRoleQueryHandler;
     }
 
     [HttpPost]
@@ -132,6 +144,7 @@ public sealed class RolesController : ApiControllerBase
     }
 
     [HttpPost("{roleId:guid}/permissions/{permissionId:guid}")]
+    [RequirePermission(PermissionCodes.RolePermissionsManage)]
     [ProducesResponseType<RolePermissionAssignmentResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<RolePermissionAssignmentResponse>> AssignPermission(
@@ -151,6 +164,7 @@ public sealed class RolesController : ApiControllerBase
     }
 
     [HttpGet("{roleId:guid}/permissions")]
+    [RequirePermission(PermissionCodes.RolePermissionsManage)]
     [ProducesResponseType<IReadOnlyCollection<RolePermissionAssignmentResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyCollection<RolePermissionAssignmentResponse>>> ListPermissions(
@@ -164,7 +178,28 @@ public sealed class RolesController : ApiControllerBase
         return Ok(response);
     }
 
+    [HttpPut("{roleId:guid}/permissions")]
+    [RequirePermission(PermissionCodes.RolePermissionsManage)]
+    [ProducesResponseType<IReadOnlyCollection<RolePermissionAssignmentResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyCollection<RolePermissionAssignmentResponse>>> ReplacePermissions(
+        Guid roleId,
+        [FromBody] ReplaceRolePermissionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _replaceRolePermissionsCommandHandler.HandleAsync(
+            new ReplaceRolePermissionsCommand
+            {
+                RoleId = roleId,
+                PermissionIds = request.PermissionIds
+            },
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpDelete("{roleId:guid}/permissions/{permissionId:guid}")]
+    [RequirePermission(PermissionCodes.RolePermissionsManage)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(CoreProject.Backend.API.Common.Models.ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemovePermission(Guid roleId, Guid permissionId, CancellationToken cancellationToken)
@@ -183,6 +218,21 @@ public sealed class RolesController : ApiControllerBase
         }
 
         return NoContent();
+    }
+
+    [HttpGet("{roleId:guid}/menus")]
+    [RequirePermission(PermissionCodes.AccessGraphRead)]
+    [ProducesResponseType<IReadOnlyCollection<MenuResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyCollection<MenuResponse>>> ListMenus(
+        Guid roleId,
+        CancellationToken cancellationToken)
+    {
+        var response = await _listMenusByRoleQueryHandler.HandleAsync(
+            new ListMenusByRoleQuery { RoleId = roleId },
+            cancellationToken);
+
+        return Ok(response);
     }
 
     public sealed class CreateRoleRequest
@@ -205,5 +255,10 @@ public sealed class RolesController : ApiControllerBase
         public string? Description { get; set; }
 
         public bool? IsActive { get; set; }
+    }
+
+    public sealed class ReplaceRolePermissionsRequest
+    {
+        public IReadOnlyCollection<Guid> PermissionIds { get; set; } = [];
     }
 }

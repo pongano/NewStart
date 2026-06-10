@@ -19,6 +19,12 @@
 - Completed `P1-20` as user access-graph query API
 - Completed `P1-11` as validation/error-response standardization for the newer API surface
 - Completed `P1-21` as user update/delete management
+- Completed `P2-01` as authentication baseline design
+- Completed `P2-02` as JWT authentication implementation
+- Completed `P2-03` as permission authorization baseline
+- Completed `P2-04` as audit log baseline
+- Added frontend-oriented backend query helpers for effective user permissions and role menus
+- Completed backend auth/admin hardening with refresh tokens, password lifecycle workflows, and bulk assignment replacement APIs
 - Preserved the existing modular monolith and Clean Architecture direction
 
 ## 2. Role Persistence Work Completed
@@ -72,8 +78,8 @@
 - `User` update/delete now works end-to-end through API
 
 ## 7. Suggested Next Step
-- Start frontend scaffold
-- Then decide whether to add more admin query helpers before auth
+- Start the Angular + Tailwind frontend scaffold against the now-stable backend auth/admin API surface
+- Keep later backend work focused on production-grade session management, token cleanup/revocation administration, and least-privilege role design
 
 ## 8. Permission Persistence Work Completed
 - Enriched `Permission` with shared domain constants:
@@ -321,3 +327,48 @@
 - API integration tests passed: 48 tests
 - `dotnet ef database update --project Backend/CoreProject.Backend.Infrastructure/CoreProject.Backend.Infrastructure.csproj --startup-project Backend/CoreProject.Backend.API/CoreProject.Backend.API.csproj --no-build` reported database already up to date
 - no new migration was required for the user update/delete slice
+
+## 31. Authentication / Authorization Work Completed
+- Added authentication endpoints:
+  - `POST /api/auth/bootstrap-admin`
+  - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
+  - `POST /api/auth/change-password`
+- Added username-or-email login with PBKDF2 password hashing
+- Added JWT bearer token generation with user identity and permission claims
+- Added persisted refresh tokens with rotation and old-token reuse rejection
+- Added `PasswordHash` persistence to `UserAccount`
+- Added current-user password change and admin reset password flows
+- Added permission-code authorization policies and handler
+- Applied permission requirements to admin API controllers/actions
+
+## 32. Audit / Query Helper Work Completed
+- Added `AuditLog` domain entity and persistence configuration
+- Added audit action filter for successful `POST`, `PUT`, and `DELETE` controller actions
+- Added audit endpoint:
+  - `GET /api/audit-logs`
+- Added frontend query helper endpoints:
+  - `GET /api/users/{userId}/permissions`
+  - `GET /api/roles/{roleId}/menus`
+- Added migration:
+  - `20260610143334_AddAuthenticationAndAudit`
+  - `20260610150836_AddRefreshTokensAndBackendHardening`
+
+## 33. Backend Hardening Work Completed
+- Added admin assignment replacement endpoints:
+  - `PUT /api/users/{userId}/roles`
+  - `PUT /api/roles/{roleId}/permissions`
+  - `PUT /api/menus/{menuId}/permissions`
+- Added refresh-token persistence:
+  - `RefreshToken` domain entity
+  - `refresh_tokens` table
+  - `SecureRefreshTokenService`
+- Verified the real local API against PostgreSQL using login payload `{ "identifier": "admin-local", "password": "Password123!" }`
+
+## 34. Final Validation Result
+- `dotnet build Backend/CoreProject.Backend.API/CoreProject.Backend.API.csproj` passed
+- application unit tests passed: 63 tests
+- API integration tests passed: 55 tests
+- API integration tests now run against SQLite in-memory through `CustomWebApplicationFactory`
+- Local PostgreSQL migrations applied successfully through `20260610150836_AddRefreshTokensAndBackendHardening`
+- Real API verification passed for health, login, refresh rotation, old refresh token rejection, change password, admin reset password, role-permission replacement, user-role replacement, and menu-permission replacement

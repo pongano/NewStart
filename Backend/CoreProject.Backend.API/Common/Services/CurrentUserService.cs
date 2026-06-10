@@ -1,4 +1,5 @@
 using CoreProject.Backend.Application.Common.Interfaces;
+using System.Security.Claims;
 
 namespace CoreProject.Backend.API.Common.Services;
 
@@ -8,7 +9,9 @@ public sealed class CurrentUserService : ICurrentUserService
     {
         var principal = httpContextAccessor.HttpContext?.User;
         IsAuthenticated = principal?.Identity?.IsAuthenticated ?? false;
-        UserId = principal?.Identity?.Name;
+        UserId = principal?.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? principal?.FindFirstValue(ClaimTypes.Name)
+            ?? principal?.Identity?.Name;
     }
 
     public string? UserId { get; }

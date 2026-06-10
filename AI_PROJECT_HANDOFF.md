@@ -37,7 +37,7 @@
 - Current known initial commit:
   - `0a93a5e` - `Initialize repository and scaffold backend foundation`
 - Current working tree status:
-  - contains uncommitted backend and documentation changes through `P1-20`
+  - contains uncommitted backend and documentation changes through `P2-04` and frontend query helpers
 
 ## 5. Current Project Structure
 - Root:
@@ -62,6 +62,7 @@
     - `Configuration`
     - `Identity`
     - `AccessControl`
+    - `Audit`
 - Frontend:
   - folder exists
   - no Angular app scaffolded yet
@@ -97,6 +98,7 @@
   - `CreateUser`
   - `GetUserById`
   - `ListUsers`
+  - password hashing support for login-capable users
 - `Role` persistence foundation added:
   - domain max-length constants
   - `IApplicationDbContext` role query/write members
@@ -138,6 +140,27 @@
   - `RemovePermissionFromRole`
 - First user access-graph query added:
   - `GetUserAccessGraph`
+- Authentication baseline added:
+  - bootstrap first admin while no users exist
+  - username-or-email login
+  - JWT bearer access tokens
+  - PBKDF2 password hashing
+- Backend auth/admin hardening added:
+  - refresh-token rotation
+  - current-user change password
+  - admin reset password
+  - bulk replacement APIs for user roles, role permissions, and menu permissions
+- Permission authorization baseline added:
+  - permission-code policies for admin endpoints
+  - permission claims emitted into JWTs at login
+  - persisted permission lookup fallback through user-role / role-permission relationships
+- Audit log baseline added:
+  - `AuditLog` entity and `audit_logs` table
+  - successful `POST`, `PUT`, and `DELETE` controller actions are audited
+  - audit log list query and endpoint
+- Frontend query helpers added:
+  - effective permissions by user
+  - visible menus by role
 - Standardized API error-response behavior added:
   - shared `ApiErrorResponse` contract remains the error shape for `400`, `404`, and `500`
   - controller-generated `404` responses now include `traceId`, `status`, and `message`
@@ -147,11 +170,18 @@
   - `GET /api/users/{id}`
   - `PUT /api/users/{id}`
   - `DELETE /api/users/{id}`
+- First authentication endpoints added:
+  - `POST /api/auth/bootstrap-admin`
+  - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
+  - `POST /api/auth/change-password`
 - First user-role/access-graph endpoints added:
   - `POST /api/users/{userId}/roles/{roleId}`
   - `GET /api/users/{userId}/roles`
+  - `PUT /api/users/{userId}/roles`
   - `DELETE /api/users/{userId}/roles/{roleId}`
   - `GET /api/users/{userId}/access-graph`
+  - `GET /api/users/{userId}/permissions`
 - First role-management endpoints added:
   - `POST /api/roles`
   - `GET /api/roles`
@@ -161,7 +191,9 @@
 - First role-permission endpoints added:
   - `POST /api/roles/{roleId}/permissions/{permissionId}`
   - `GET /api/roles/{roleId}/permissions`
+  - `PUT /api/roles/{roleId}/permissions`
   - `DELETE /api/roles/{roleId}/permissions/{permissionId}`
+  - `GET /api/roles/{roleId}/menus`
 - First permission/menu query endpoints added:
   - `GET /api/permissions`
   - `GET /api/menus`
@@ -178,6 +210,9 @@
 - First menu-permission relationship endpoints added:
   - `POST /api/menus/{menuId}/permissions/{permissionId}`
   - `GET /api/menus/{menuId}/permissions`
+  - `PUT /api/menus/{menuId}/permissions`
+- First audit endpoint added:
+  - `GET /api/audit-logs`
 - Sample feature added:
   - `SystemInfo`
 
@@ -185,6 +220,10 @@
 - `GET /health`
 - `GET /api/system/info`
 - `GET /api/system/error`
+- `POST /api/auth/bootstrap-admin`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/change-password`
 - `GET /api/identity/overview`
 - `GET /api/access-control/overview`
 - `POST /api/users`
@@ -192,10 +231,13 @@
 - `GET /api/users/{id}`
 - `PUT /api/users/{id}`
 - `DELETE /api/users/{id}`
+- `POST /api/users/{id}/reset-password`
 - `POST /api/users/{userId}/roles/{roleId}`
 - `GET /api/users/{userId}/roles`
+- `PUT /api/users/{userId}/roles`
 - `DELETE /api/users/{userId}/roles/{roleId}`
 - `GET /api/users/{userId}/access-graph`
+- `GET /api/users/{userId}/permissions`
 - `POST /api/roles`
 - `GET /api/roles`
 - `GET /api/roles/{id}`
@@ -203,7 +245,9 @@
 - `DELETE /api/roles/{id}`
 - `POST /api/roles/{roleId}/permissions/{permissionId}`
 - `GET /api/roles/{roleId}/permissions`
+- `PUT /api/roles/{roleId}/permissions`
 - `DELETE /api/roles/{roleId}/permissions/{permissionId}`
+- `GET /api/roles/{roleId}/menus`
 - `GET /api/permissions`
 - `GET /api/menus`
 - `POST /api/permissions`
@@ -216,6 +260,8 @@
 - `DELETE /api/menus/{id}`
 - `POST /api/menus/{menuId}/permissions/{permissionId}`
 - `GET /api/menus/{menuId}/permissions`
+- `PUT /api/menus/{menuId}/permissions`
+- `GET /api/audit-logs`
 
 ### Important backend files
 - API startup:
@@ -244,9 +290,7 @@
   - [20260520200331_InitialCreate.cs](E:\Project\NewStart\Backend\CoreProject.Backend.Infrastructure\Persistence\Migrations\20260520200331_InitialCreate.cs)
 
 ## 7. What Is NOT Implemented Yet
-- No authentication flow yet
-- No JWT yet
-- No real auth/login workflow yet
+- No production-grade user/session management yet
 - No frontend app yet
 - No production deployment setup yet
 
@@ -265,7 +309,7 @@
 - Current project direction is core platform first, not business-specific features first
 - Prioritize reusable system modules over one-off features
 - `Role + Permission + Menu` should belong to the same future module area
-- Authentication exists in project vision, but implementation is intentionally deferred for now
+- Authentication, authorization, audit, refresh-token rotation, and password lifecycle workflows now exist as backend baseline features
 
 ### Database constraints
 - Use `EF Core` with `PostgreSQL`
@@ -384,14 +428,36 @@
   - API integration tests passed: 48 tests
   - `dotnet ef database update` confirmed the database was already up to date
   - no new migration was required for the user update/delete slice
+- Authentication / authorization / audit / query helper verification confirmed:
+  - migration `20260610143334_AddAuthenticationAndAudit` created
+  - API project build passed
+  - application unit tests passed: 63 tests
+  - API integration tests passed: 53 tests
+  - integration tests now use SQLite in-memory for reproducible API coverage
+  - verified anonymous admin API requests return `401`
+  - verified missing permission returns `403`
+  - verified bootstrap admin and login return a usable bearer token
+  - verified successful mutation audit entries
+  - verified `GET /api/users/{userId}/permissions`
+  - verified `GET /api/roles/{roleId}/menus`
+  - PostgreSQL migration application was later completed with the correct local connection string
+- Backend auth/admin hardening verification confirmed:
+  - migration `20260610150836_AddRefreshTokensAndBackendHardening` created and applied to local PostgreSQL
+  - application unit tests passed: 63 tests
+  - API integration tests passed: 55 tests
+  - real API verification passed against `coreproject_backend_dev`:
+    - `POST /api/auth/login` using `{ "identifier": "admin-local", "password": "Password123!" }`
+    - `POST /api/auth/refresh` rotates refresh tokens
+    - old refresh token reuse returns `400`
+    - `POST /api/auth/change-password`
+    - `POST /api/users/{id}/reset-password`
+    - `PUT /api/users/{userId}/roles`
+    - `PUT /api/roles/{roleId}/permissions`
+    - `PUT /api/menus/{menuId}/permissions`
 
 ## 10. Recommended Next Work
-- Decide whether more admin query helpers are needed:
-  - menus by role
-  - permissions by user
-  - role-permission and user-role bulk screens
-- Start Angular + Tailwind scaffold after backend admin API surface is stable enough for the first screens
-- Begin authentication design after frontend/admin priorities are clearer
+- Start Angular + Tailwind scaffold after backend auth/admin API surface is stable enough for the first screens
+- Continue backend hardening later with production-grade session management, token cleanup/revocation administration, and more granular least-privilege role design if needed
 
 ## 11. Handoff Rules for Another AI / Machine
 - Before changing code:
@@ -776,6 +842,51 @@
 - Result:
   - no new migration was required
   - backend admin CRUD is now complete for users, roles, permissions, and menus
+
+### 2026-06-10
+- Completed `P2-01`, `P2-02`, `P2-03`, `P2-04`, frontend admin query helpers, and backend auth/admin hardening
+- Added authentication baseline:
+  - `POST /api/auth/bootstrap-admin`
+  - `POST /api/auth/login`
+  - username-or-email login strategy
+  - JWT access tokens with permission claims
+  - PBKDF2 password hashing
+- Added authorization baseline:
+  - permission-code policies
+  - permission requirements on admin controllers/actions
+  - authorization handler with JWT claim and persisted permission checks
+- Added audit baseline:
+  - `AuditLog` domain entity
+  - `audit_logs` table
+  - successful mutation audit filter
+  - `GET /api/audit-logs`
+- Added frontend query helper endpoints:
+  - `GET /api/users/{userId}/permissions`
+  - `GET /api/roles/{roleId}/menus`
+- Added backend auth/admin hardening:
+  - `POST /api/auth/refresh`
+  - `POST /api/auth/change-password`
+  - `POST /api/users/{id}/reset-password`
+  - `PUT /api/users/{userId}/roles`
+  - `PUT /api/roles/{roleId}/permissions`
+  - `PUT /api/menus/{menuId}/permissions`
+- Added migration:
+  - `20260610143334_AddAuthenticationAndAudit`
+  - `20260610150836_AddRefreshTokensAndBackendHardening`
+- Updated integration test infrastructure:
+  - API integration tests now use SQLite in-memory through `CustomWebApplicationFactory`
+  - authenticated test clients use bearer tokens with permission claims
+- Verified:
+  - `dotnet build Backend/CoreProject.Backend.API/CoreProject.Backend.API.csproj`
+  - `dotnet test Backend/CoreProject.Backend.Application.UnitTests/CoreProject.Backend.Application.UnitTests.csproj --no-build`
+  - `dotnet test Backend/CoreProject.Backend.API.IntegrationTests/CoreProject.Backend.API.IntegrationTests.csproj`
+  - `dotnet ef database update --project Backend/CoreProject.Backend.Infrastructure/CoreProject.Backend.Infrastructure.csproj --startup-project Backend/CoreProject.Backend.API/CoreProject.Backend.API.csproj --no-build`
+  - real API flow on `http://127.0.0.1:5187` with local PostgreSQL
+- Result:
+  - application unit tests passed: 63 tests
+  - API integration tests passed: 55 tests
+  - local PostgreSQL migrations applied successfully with the correct local connection string
+  - real API verification passed for login, refresh rotation/reuse rejection, change password, admin reset password, and bulk replacement assignment APIs
 
 ## 14. Update Template For Future Editors
 - Copy and append this block under `Work Log` when another machine completes work:

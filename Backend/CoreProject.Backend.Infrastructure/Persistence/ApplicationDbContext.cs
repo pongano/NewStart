@@ -1,5 +1,6 @@
 using CoreProject.Backend.Application.Common.Interfaces;
 using CoreProject.Backend.Domain.AccessControl.Entities;
+using CoreProject.Backend.Domain.Audit.Entities;
 using CoreProject.Backend.Domain.Configuration.Entities;
 using CoreProject.Backend.Domain.Identity.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,20 +16,24 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ConfigurationEntry> ConfigurationEntries => Set<ConfigurationEntry>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<Menu> Menus => Set<Menu>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<MenuPermission> MenuPermissions => Set<MenuPermission>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     IQueryable<UserAccount> IApplicationDbContext.UserAccounts => UserAccounts;
+    IQueryable<RefreshToken> IApplicationDbContext.RefreshTokens => RefreshTokens;
     IQueryable<Role> IApplicationDbContext.Roles => Roles;
     IQueryable<Permission> IApplicationDbContext.Permissions => Permissions;
     IQueryable<Menu> IApplicationDbContext.Menus => Menus;
     IQueryable<UserRole> IApplicationDbContext.UserRoles => UserRoles;
     IQueryable<RolePermission> IApplicationDbContext.RolePermissions => RolePermissions;
     IQueryable<MenuPermission> IApplicationDbContext.MenuPermissions => MenuPermissions;
+    IQueryable<AuditLog> IApplicationDbContext.AuditLogs => AuditLogs;
 
     public Task AddUserAccountAsync(UserAccount userAccount, CancellationToken cancellationToken = default)
     {
@@ -69,6 +74,16 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     {
         UserAccounts.Remove(userAccount);
         return Task.CompletedTask;
+    }
+
+    public Task AddRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
+    {
+        return RefreshTokens.AddAsync(refreshToken, cancellationToken).AsTask();
+    }
+
+    public Task<RefreshToken?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        return RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
     }
 
     public Task AddRoleAsync(Role role, CancellationToken cancellationToken = default)
@@ -249,6 +264,31 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
         return MenuPermissions
             .OrderBy(x => x.MenuId)
             .ThenBy(x => x.PermissionId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<MenuPermission?> FindMenuPermissionAsync(Guid menuId, Guid permissionId, CancellationToken cancellationToken = default)
+    {
+        return MenuPermissions.FirstOrDefaultAsync(x => x.MenuId == menuId && x.PermissionId == permissionId, cancellationToken);
+    }
+
+    public Task RemoveMenuPermissionAsync(MenuPermission menuPermission, CancellationToken cancellationToken = default)
+    {
+        MenuPermissions.Remove(menuPermission);
+        return Task.CompletedTask;
+    }
+
+    public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        return AuditLogs.AddAsync(auditLog, cancellationToken).AsTask();
+    }
+
+    public Task<List<AuditLog>> ListAuditLogsAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        return AuditLogs
+            .OrderByDescending(x => x.OccurredAtUtc)
+            .ThenByDescending(x => x.Id)
+            .Take(limit)
             .ToListAsync(cancellationToken);
     }
 

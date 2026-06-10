@@ -15,13 +15,15 @@ public sealed class CreateUserCommandHandlerTests
         var handler = new CreateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(utcNow),
-            new FakeCurrentUserService("tester", true));
+            new FakeCurrentUserService("tester", true),
+            new FakePasswordHasher());
 
         var response = await handler.HandleAsync(new CreateUserCommand
         {
             UserName = "alice",
             Email = "alice@example.com",
             DisplayName = "Alice",
+            Password = "Password123!",
             IsActive = true
         });
 
@@ -34,6 +36,7 @@ public sealed class CreateUserCommandHandlerTests
         var persistedUser = Assert.Single(await dbContext.ListUserAccountsAsync());
         Assert.Equal("tester", persistedUser.CreatedBy);
         Assert.Equal(utcNow, persistedUser.CreatedAtUtc);
+        Assert.Equal("hashed:Password123!", persistedUser.PasswordHash);
     }
 
     [Fact]
@@ -50,13 +53,15 @@ public sealed class CreateUserCommandHandlerTests
         var handler = new CreateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(DateTime.UtcNow),
-            new FakeCurrentUserService());
+            new FakeCurrentUserService(),
+            new FakePasswordHasher());
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => handler.HandleAsync(new CreateUserCommand
         {
             UserName = "alice",
             Email = "alice@example.com",
-            DisplayName = "Alice"
+            DisplayName = "Alice",
+            Password = "Password123!"
         }));
 
         Assert.NotNull(exception.Errors);
@@ -77,13 +82,15 @@ public sealed class CreateUserCommandHandlerTests
         var handler = new CreateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(DateTime.UtcNow),
-            new FakeCurrentUserService());
+            new FakeCurrentUserService(),
+            new FakePasswordHasher());
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => handler.HandleAsync(new CreateUserCommand
         {
             UserName = "new-alice",
             Email = "alice@example.com",
-            DisplayName = "Alice"
+            DisplayName = "Alice",
+            Password = "Password123!"
         }));
 
         Assert.NotNull(exception.Errors);

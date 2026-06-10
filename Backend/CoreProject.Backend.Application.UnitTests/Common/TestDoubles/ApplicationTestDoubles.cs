@@ -1,5 +1,6 @@
 using CoreProject.Backend.Application.Common.Interfaces;
 using CoreProject.Backend.Domain.AccessControl.Entities;
+using CoreProject.Backend.Domain.Audit.Entities;
 using CoreProject.Backend.Domain.Identity.Entities;
 
 namespace CoreProject.Backend.Application.UnitTests.Common.TestDoubles;
@@ -7,20 +8,24 @@ namespace CoreProject.Backend.Application.UnitTests.Common.TestDoubles;
 internal sealed class FakeApplicationDbContext : IApplicationDbContext
 {
     private readonly List<UserAccount> _userAccounts = [];
+    private readonly List<RefreshToken> _refreshTokens = [];
     private readonly List<Role> _roles = [];
     private readonly List<Permission> _permissions = [];
     private readonly List<Menu> _menus = [];
     private readonly List<UserRole> _userRoles = [];
     private readonly List<RolePermission> _rolePermissions = [];
     private readonly List<MenuPermission> _menuPermissions = [];
+    private readonly List<AuditLog> _auditLogs = [];
 
     public IQueryable<UserAccount> UserAccounts => _userAccounts.AsQueryable();
+    public IQueryable<RefreshToken> RefreshTokens => _refreshTokens.AsQueryable();
     public IQueryable<Role> Roles => _roles.AsQueryable();
     public IQueryable<Permission> Permissions => _permissions.AsQueryable();
     public IQueryable<Menu> Menus => _menus.AsQueryable();
     public IQueryable<UserRole> UserRoles => _userRoles.AsQueryable();
     public IQueryable<RolePermission> RolePermissions => _rolePermissions.AsQueryable();
     public IQueryable<MenuPermission> MenuPermissions => _menuPermissions.AsQueryable();
+    public IQueryable<AuditLog> AuditLogs => _auditLogs.AsQueryable();
 
     public Task AddUserAccountAsync(UserAccount userAccount, CancellationToken cancellationToken = default)
     {
@@ -62,6 +67,17 @@ internal sealed class FakeApplicationDbContext : IApplicationDbContext
     {
         _userAccounts.Remove(userAccount);
         return Task.CompletedTask;
+    }
+
+    public Task AddRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
+    {
+        _refreshTokens.Add(refreshToken);
+        return Task.CompletedTask;
+    }
+
+    public Task<RefreshToken?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_refreshTokens.FirstOrDefault(x => x.TokenHash == tokenHash));
     }
 
     public Task AddRoleAsync(Role role, CancellationToken cancellationToken = default)
@@ -235,6 +251,32 @@ internal sealed class FakeApplicationDbContext : IApplicationDbContext
         return Task.FromResult(_menuPermissions.OrderBy(x => x.MenuId).ThenBy(x => x.PermissionId).ToList());
     }
 
+    public Task<MenuPermission?> FindMenuPermissionAsync(Guid menuId, Guid permissionId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_menuPermissions.FirstOrDefault(x => x.MenuId == menuId && x.PermissionId == permissionId));
+    }
+
+    public Task RemoveMenuPermissionAsync(MenuPermission menuPermission, CancellationToken cancellationToken = default)
+    {
+        _menuPermissions.Remove(menuPermission);
+        return Task.CompletedTask;
+    }
+
+    public Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken = default)
+    {
+        _auditLogs.Add(auditLog);
+        return Task.CompletedTask;
+    }
+
+    public Task<List<AuditLog>> ListAuditLogsAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_auditLogs
+            .OrderByDescending(x => x.OccurredAtUtc)
+            .ThenByDescending(x => x.Id)
+            .Take(limit)
+            .ToList());
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(1);
@@ -243,6 +285,11 @@ internal sealed class FakeApplicationDbContext : IApplicationDbContext
     public void Seed(params UserAccount[] userAccounts)
     {
         _userAccounts.AddRange(userAccounts);
+    }
+
+    public void Seed(params RefreshToken[] refreshTokens)
+    {
+        _refreshTokens.AddRange(refreshTokens);
     }
 
     public void Seed(params Role[] roles)
@@ -273,6 +320,56 @@ internal sealed class FakeApplicationDbContext : IApplicationDbContext
     public void Seed(params MenuPermission[] menuPermissions)
     {
         _menuPermissions.AddRange(menuPermissions);
+    }
+
+    public void Seed(params AuditLog[] auditLogs)
+    {
+        _auditLogs.AddRange(auditLogs);
+    }
+}
+
+internal sealed class FakePasswordHasher : IPasswordHasher
+{
+    public string HashPassword(string password)
+    {
+        return $"hashed:{password}";
+    }
+
+    public bool VerifyPassword(string passwordHash, string password)
+    {
+        return string.Equals(passwordHash, HashPassword(password), StringComparison.Ordinal);
+    }
+}
+
+internal sealed class FakeJwtTokenService : IJwtTokenService
+{
+    public JwtTokenResult CreateAccessToken(UserAccount userAccount, IReadOnlyCollection<string> permissionCodes)
+    {
+        return new JwtTokenResult
+        {
+            AccessToken = $"token:{userAccount.Id}",
+            ExpiresAtUtc = DateTime.UtcNow.AddHours(1)
+        };
+    }
+}
+
+internal sealed class FakeRefreshTokenService : IRefreshTokenService
+{
+    private int _sequence;
+
+    public RefreshTokenValue CreateRefreshToken()
+    {
+        _sequence++;
+        return new RefreshTokenValue
+        {
+            Token = $"refresh-token-{_sequence}",
+            TokenHash = HashToken($"refresh-token-{_sequence}")
+        };
+    }
+
+    public string HashToken(string token)
+    {
+        return $"hashed-refresh:{token}";
     }
 }
 

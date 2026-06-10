@@ -15,7 +15,11 @@ public sealed class UserAccount : AuditableEntity
 
     public string DisplayName { get; set; } = string.Empty;
 
+    public string PasswordHash { get; set; } = string.Empty;
+
     public bool IsActive { get; set; } = true;
 
     public ICollection<UserRole> UserRoles { get; set; } = [];
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

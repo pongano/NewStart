@@ -19,6 +19,8 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
+        services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddScoped<IRefreshTokenService, SecureRefreshTokenService>();
 
         return services;
     }

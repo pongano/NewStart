@@ -9,7 +9,7 @@ public sealed class UserRolesEndpointTests : IClassFixture<CustomWebApplicationF
 
     public UserRolesEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]
@@ -92,7 +92,8 @@ public sealed class UserRolesEndpointTests : IClassFixture<CustomWebApplicationF
         {
             UserName = $"user-{uniqueId}",
             Email = $"user-{uniqueId}@example.com",
-            DisplayName = "Role Test User"
+            DisplayName = "Role Test User",
+            Password = "Password123!"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -116,6 +117,7 @@ public sealed class UserRolesEndpointTests : IClassFixture<CustomWebApplicationF
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 
     private sealed class CreateRoleRequest

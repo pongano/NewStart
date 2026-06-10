@@ -9,7 +9,7 @@ public sealed class PermissionsEndpointTests : IClassFixture<CustomWebApplicatio
 
     public PermissionsEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

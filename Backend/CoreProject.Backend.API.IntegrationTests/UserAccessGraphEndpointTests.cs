@@ -9,7 +9,7 @@ public sealed class UserAccessGraphEndpointTests : IClassFixture<CustomWebApplic
 
     public UserAccessGraphEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]
@@ -47,7 +47,8 @@ public sealed class UserAccessGraphEndpointTests : IClassFixture<CustomWebApplic
         {
             UserName = $"user-{uniqueId}",
             Email = $"user-{uniqueId}@example.com",
-            DisplayName = "Access Graph User"
+            DisplayName = "Access Graph User",
+            Password = "Password123!"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -96,6 +97,7 @@ public sealed class UserAccessGraphEndpointTests : IClassFixture<CustomWebApplic
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 
     private sealed class CreateRoleRequest

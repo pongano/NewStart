@@ -1,4 +1,5 @@
 using CoreProject.Backend.Domain.AccessControl.Entities;
+using CoreProject.Backend.Domain.Audit.Entities;
 using CoreProject.Backend.Domain.Identity.Entities;
 
 namespace CoreProject.Backend.Application.Common.Interfaces;
@@ -6,12 +7,14 @@ namespace CoreProject.Backend.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     IQueryable<UserAccount> UserAccounts { get; }
+    IQueryable<RefreshToken> RefreshTokens { get; }
     IQueryable<Role> Roles { get; }
     IQueryable<Permission> Permissions { get; }
     IQueryable<Menu> Menus { get; }
     IQueryable<UserRole> UserRoles { get; }
     IQueryable<RolePermission> RolePermissions { get; }
     IQueryable<MenuPermission> MenuPermissions { get; }
+    IQueryable<AuditLog> AuditLogs { get; }
 
     Task AddUserAccountAsync(UserAccount userAccount, CancellationToken cancellationToken = default);
 
@@ -28,6 +31,10 @@ public interface IApplicationDbContext
     Task<List<UserAccount>> ListUserAccountsAsync(CancellationToken cancellationToken = default);
 
     Task RemoveUserAccountAsync(UserAccount userAccount, CancellationToken cancellationToken = default);
+
+    Task AddRefreshTokenAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default);
+
+    Task<RefreshToken?> FindRefreshTokenByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
 
     Task AddRoleAsync(Role role, CancellationToken cancellationToken = default);
 
@@ -92,6 +99,14 @@ public interface IApplicationDbContext
     Task<bool> MenuPermissionExistsAsync(Guid menuId, Guid permissionId, CancellationToken cancellationToken = default);
 
     Task<List<MenuPermission>> ListMenuPermissionsAsync(CancellationToken cancellationToken = default);
+
+    Task<MenuPermission?> FindMenuPermissionAsync(Guid menuId, Guid permissionId, CancellationToken cancellationToken = default);
+
+    Task RemoveMenuPermissionAsync(MenuPermission menuPermission, CancellationToken cancellationToken = default);
+
+    Task AddAuditLogAsync(AuditLog auditLog, CancellationToken cancellationToken = default);
+
+    Task<List<AuditLog>> ListAuditLogsAsync(int limit, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

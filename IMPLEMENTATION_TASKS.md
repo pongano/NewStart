@@ -12,7 +12,7 @@
 - Initial migration created
 - Sample API endpoints working
 - Frontend not scaffolded yet
-- Authentication and IAM modules not implemented yet
+- Authentication, authorization, audit logging, and core IAM/admin APIs implemented
 
 ## 3. Priority Order
 - `P0` = must do first
@@ -385,7 +385,7 @@
 ## 8. Security Tasks
 
 ### P2-01: Design Authentication Baseline
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - define how authentication should work before implementation
 - Work:
@@ -394,9 +394,13 @@
   - decide login identifier strategy
 - Acceptance:
   - auth direction is documented and implementation-ready
+- Note:
+  - completed with username-or-email login strategy
+  - JWT payload includes user id, username, email, display name, and permission claims
+  - bootstrap admin flow is available only while no user accounts exist
 
 ### P2-02: Implement JWT Authentication
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - add real authentication flow
 - Work:
@@ -406,9 +410,14 @@
   - auth middleware wiring
 - Acceptance:
   - protected endpoints can use bearer token auth
+- Note:
+  - implemented `POST /api/auth/login`
+  - implemented `POST /api/auth/bootstrap-admin`
+  - added PBKDF2 password hashing and `PasswordHash` persistence on `UserAccount`
+  - added migration `20260610143334_AddAuthenticationAndAudit`
 
 ### P2-03: Implement Authorization Baseline
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - connect roles/permissions with API access
 - Work:
@@ -416,11 +425,16 @@
   - add authorization policies or custom checks
 - Acceptance:
   - API authorization can enforce permission-based access
+- Note:
+  - implemented permission-code policies for admin API endpoints
+  - bearer tokens carry effective permission claims at login time
+  - authorization handler can also resolve permissions from user-role / role-permission persistence
+  - integration tests cover unauthorized and forbidden requests
 
 ## 9. Logging / Reliability Tasks
 
 ### P2-04: Add Audit Log Baseline
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - capture important system actions
 - Work:
@@ -429,6 +443,47 @@
   - wire logging points in admin flows
 - Acceptance:
   - important actions can be traced in database or persistent log storage
+- Note:
+  - added `AuditLog` entity and `audit_logs` table
+  - added audit action filter for successful `POST`, `PUT`, and `DELETE` controller actions
+  - added `GET /api/audit-logs`
+  - integration tests cover persisted mutation audit events
+
+### P2-09: Add Frontend Admin Query Helpers
+- Status: `DONE`
+- Goal:
+  - expose direct helper APIs that common admin screens need without forcing frontend code to rebuild graphs manually
+- Work:
+  - add effective permissions by user query
+  - add menus by role query
+- Acceptance:
+  - frontend can retrieve effective user permissions and role-visible menus directly
+- Note:
+  - implemented `GET /api/users/{userId}/permissions`
+  - implemented `GET /api/roles/{roleId}/menus`
+  - integration tests cover both helper endpoints
+
+### P2-10: Backend Auth/Admin Hardening
+- Status: `DONE`
+- Goal:
+  - complete the backend auth/admin surface needed before frontend scaffold
+- Work:
+  - add refresh-token rotation
+  - add current-user change password
+  - add admin reset password
+  - add bulk replacement APIs for user roles, role permissions, and menu permissions
+- Acceptance:
+  - token lifecycle and password lifecycle compile, run, and are covered by tests
+  - admin assignment screens can replace complete assignment sets in one request
+- Note:
+  - implemented `POST /api/auth/refresh`
+  - implemented `POST /api/auth/change-password`
+  - implemented `POST /api/users/{id}/reset-password`
+  - implemented `PUT /api/users/{userId}/roles`
+  - implemented `PUT /api/roles/{roleId}/permissions`
+  - implemented `PUT /api/menus/{menuId}/permissions`
+  - added migration `20260610150836_AddRefreshTokensAndBackendHardening`
+  - applied migrations to local PostgreSQL and verified the real API flow against `coreproject_backend_dev`
 
 ### P2-05: Expand Global Error Handling
 - Status: `TODO`

@@ -9,7 +9,7 @@ public sealed class MenusEndpointTests : IClassFixture<CustomWebApplicationFacto
 
     public MenusEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

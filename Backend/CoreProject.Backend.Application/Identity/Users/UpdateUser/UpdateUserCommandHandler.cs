@@ -9,15 +9,18 @@ public sealed class UpdateUserCommandHandler
     private readonly IApplicationDbContext _applicationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPasswordHasher _passwordHasher;
 
     public UpdateUserCommandHandler(
         IApplicationDbContext applicationDbContext,
         IDateTimeProvider dateTimeProvider,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IPasswordHasher passwordHasher)
     {
         _applicationDbContext = applicationDbContext;
         _dateTimeProvider = dateTimeProvider;
         _currentUserService = currentUserService;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<UserAccountResponse?> HandleAsync(UpdateUserCommand command, CancellationToken cancellationToken = default)
@@ -34,12 +37,16 @@ public sealed class UpdateUserCommandHandler
         var email = command.Email.Trim();
         var displayName = command.DisplayName.Trim();
 
-        await ValidateAsync(command.Id, userName, email, displayName, cancellationToken);
+        await ValidateAsync(command.Id, userName, email, displayName, command.Password, cancellationToken);
 
         userAccount.UserName = userName;
         userAccount.Email = email;
         userAccount.DisplayName = displayName;
         userAccount.IsActive = command.IsActive;
+        if (!string.IsNullOrWhiteSpace(command.Password))
+        {
+            userAccount.PasswordHash = _passwordHasher.HashPassword(command.Password);
+        }
         userAccount.LastModifiedAtUtc = _dateTimeProvider.UtcNow;
         userAccount.LastModifiedBy = string.IsNullOrWhiteSpace(_currentUserService.UserId) ? "system" : _currentUserService.UserId;
 
@@ -53,6 +60,7 @@ public sealed class UpdateUserCommandHandler
         string userName,
         string email,
         string displayName,
+        string? password,
         CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -60,6 +68,11 @@ public sealed class UpdateUserCommandHandler
         AddRequiredAndLengthErrors(errors, "userName", userName, Domain.Identity.Entities.UserAccount.UserNameMaxLength);
         AddRequiredAndLengthErrors(errors, "email", email, Domain.Identity.Entities.UserAccount.EmailMaxLength);
         AddRequiredAndLengthErrors(errors, "displayName", displayName, Domain.Identity.Entities.UserAccount.DisplayNameMaxLength);
+
+        if (password is not null && (string.IsNullOrWhiteSpace(password) || password.Length < 8))
+        {
+            errors["password"] = ["Password must be at least 8 characters."];
+        }
 
         if (!string.IsNullOrWhiteSpace(email) && !IsValidEmail(email))
         {

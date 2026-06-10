@@ -25,7 +25,8 @@ public sealed class UpdateUserCommandHandlerTests
         var handler = new UpdateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(utcNow),
-            new FakeCurrentUserService("tester", true));
+            new FakeCurrentUserService("tester", true),
+            new FakePasswordHasher());
 
         var response = await handler.HandleAsync(new UpdateUserCommand
         {
@@ -71,7 +72,8 @@ public sealed class UpdateUserCommandHandlerTests
         var handler = new UpdateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(DateTime.UtcNow),
-            new FakeCurrentUserService());
+            new FakeCurrentUserService(),
+            new FakePasswordHasher());
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => handler.HandleAsync(new UpdateUserCommand
         {
@@ -110,7 +112,8 @@ public sealed class UpdateUserCommandHandlerTests
         var handler = new UpdateUserCommandHandler(
             dbContext,
             new FakeDateTimeProvider(DateTime.UtcNow),
-            new FakeCurrentUserService());
+            new FakeCurrentUserService(),
+            new FakePasswordHasher());
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => handler.HandleAsync(new UpdateUserCommand
         {

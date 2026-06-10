@@ -10,5 +10,7 @@ public sealed class UpdateUserCommand
 
     public string DisplayName { get; init; } = string.Empty;
 
+    public string? Password { get; init; }
+
     public bool IsActive { get; init; }
 }

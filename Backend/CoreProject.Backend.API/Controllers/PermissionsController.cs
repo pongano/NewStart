@@ -1,15 +1,18 @@
+using CoreProject.Backend.API.Security;
 using CoreProject.Backend.Application.AccessControl.Permissions;
 using CoreProject.Backend.Application.AccessControl.Permissions.CreatePermission;
 using CoreProject.Backend.Application.AccessControl.Permissions.DeletePermission;
 using CoreProject.Backend.Application.AccessControl.Permissions.GetPermissionById;
 using CoreProject.Backend.Application.AccessControl.Permissions.ListPermissions;
 using CoreProject.Backend.Application.AccessControl.Permissions.UpdatePermission;
+using CoreProject.Backend.Application.Common.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreProject.Backend.API.Controllers;
 
 [ApiController]
 [Route("api/permissions")]
+[RequirePermission(PermissionCodes.PermissionsManage)]
 public sealed class PermissionsController : ApiControllerBase
 {
     private readonly CreatePermissionCommandHandler _createPermissionCommandHandler;

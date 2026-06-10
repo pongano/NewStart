@@ -13,7 +13,7 @@ public sealed class SystemInfoEndpointTests : IClassFixture<CustomWebApplication
     public SystemInfoEndpointTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

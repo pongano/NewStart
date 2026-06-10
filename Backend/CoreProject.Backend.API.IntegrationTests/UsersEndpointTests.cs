@@ -9,7 +9,7 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
 
     public UsersEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]
@@ -20,7 +20,8 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         {
             UserName = $"user-{uniqueId}",
             Email = $"user-{uniqueId}@example.com",
-            DisplayName = "Created User"
+            DisplayName = "Created User",
+            Password = "Password123!"
         };
 
         var response = await _client.PostAsJsonAsync("/api/users", request);
@@ -85,14 +86,16 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         {
             UserName = $"dup-user-{uniqueId}",
             Email = $"dup-user-{uniqueId}@example.com",
-            DisplayName = "Original User"
+            DisplayName = "Original User",
+            Password = "Password123!"
         };
 
         var duplicateRequest = new CreateUserRequest
         {
             UserName = firstRequest.UserName,
             Email = $"dup-user-second-{uniqueId}@example.com",
-            DisplayName = "Duplicate User"
+            DisplayName = "Duplicate User",
+            Password = "Password123!"
         };
 
         var firstResponse = await _client.PostAsJsonAsync("/api/users", firstRequest);
@@ -110,7 +113,8 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         {
             UserName = $"invalid-{Guid.NewGuid():N}",
             Email = "not-an-email",
-            DisplayName = "Invalid Email User"
+            DisplayName = "Invalid Email User",
+            Password = "Password123!"
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -224,13 +228,43 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         Assert.False(string.IsNullOrWhiteSpace(payload.TraceId));
     }
 
+    [Fact]
+    public async Task ResetUserPassword_ShouldAllowLoginWithNewPassword()
+    {
+        var uniqueId = Guid.NewGuid().ToString("N");
+        var createdUser = await CreateUserAsync(
+            $"reset-{uniqueId}",
+            $"reset-{uniqueId}@example.com",
+            "Reset User");
+
+        var response = await _client.PostAsJsonAsync($"/api/users/{createdUser.Id}/reset-password", new ResetPasswordRequest
+        {
+            NewPassword = "Password456!"
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Identifier = createdUser.UserName,
+            Password = "Password456!"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var payload = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        Assert.NotNull(payload);
+        Assert.False(string.IsNullOrWhiteSpace(payload.AccessToken));
+    }
+
     private async Task<UserResponse> CreateUserAsync(string userName, string email, string displayName)
     {
         var response = await _client.PostAsJsonAsync("/api/users", new CreateUserRequest
         {
             UserName = userName,
             Email = email,
-            DisplayName = displayName
+            DisplayName = displayName,
+            Password = "Password123!"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -245,6 +279,7 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
         public bool? IsActive { get; set; }
     }
 
@@ -254,6 +289,22 @@ public sealed class UsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         public string Email { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public bool? IsActive { get; set; }
+    }
+
+    private sealed class ResetPasswordRequest
+    {
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class LoginRequest
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private sealed class LoginResponse
+    {
+        public string AccessToken { get; set; } = string.Empty;
     }
 
     private sealed class UserResponse

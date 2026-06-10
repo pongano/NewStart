@@ -9,7 +9,7 @@ public sealed class RolesEndpointTests : IClassFixture<CustomWebApplicationFacto
 
     public RolesEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

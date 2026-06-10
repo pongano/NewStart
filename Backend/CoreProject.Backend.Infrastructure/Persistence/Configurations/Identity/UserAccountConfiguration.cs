@@ -24,6 +24,10 @@ public sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAcco
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(x => x.PasswordHash)
+            .HasMaxLength(500)
+            .IsRequired();
+
         builder.Property(x => x.CreatedBy)
             .HasMaxLength(100);
 

@@ -2,7 +2,7 @@ using CoreProject.Backend.Domain.AccessControl.Entities;
 
 namespace CoreProject.Backend.Application.AccessControl.Permissions;
 
-internal static class PermissionMappings
+public static class PermissionMappings
 {
     public static PermissionResponse ToResponse(this Permission permission)
     {

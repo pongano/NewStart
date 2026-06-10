@@ -9,7 +9,7 @@ public sealed class AccessControlEndpointTests : IClassFixture<CustomWebApplicat
 
     public AccessControlEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

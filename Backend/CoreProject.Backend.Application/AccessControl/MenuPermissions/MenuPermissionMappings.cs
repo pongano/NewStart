@@ -2,7 +2,7 @@ using CoreProject.Backend.Domain.AccessControl.Entities;
 
 namespace CoreProject.Backend.Application.AccessControl.MenuPermissions;
 
-internal static class MenuPermissionMappings
+public static class MenuPermissionMappings
 {
     public static MenuPermissionResponse ToResponse(this MenuPermission menuPermission)
     {

@@ -10,15 +10,18 @@ public sealed class CreateUserCommandHandler
     private readonly IApplicationDbContext _applicationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPasswordHasher _passwordHasher;
 
     public CreateUserCommandHandler(
         IApplicationDbContext applicationDbContext,
         IDateTimeProvider dateTimeProvider,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IPasswordHasher passwordHasher)
     {
         _applicationDbContext = applicationDbContext;
         _dateTimeProvider = dateTimeProvider;
         _currentUserService = currentUserService;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<UserAccountResponse> HandleAsync(
@@ -31,13 +34,14 @@ public sealed class CreateUserCommandHandler
         var email = command.Email.Trim();
         var displayName = command.DisplayName.Trim();
 
-        await ValidateAsync(userName, email, displayName, cancellationToken);
+        await ValidateAsync(userName, email, displayName, command.Password, cancellationToken);
 
         var userAccount = new UserAccount
         {
             UserName = userName,
             Email = email,
             DisplayName = displayName,
+            PasswordHash = _passwordHasher.HashPassword(command.Password),
             IsActive = command.IsActive,
             CreatedAtUtc = _dateTimeProvider.UtcNow,
             CreatedBy = string.IsNullOrWhiteSpace(_currentUserService.UserId) ? "system" : _currentUserService.UserId
@@ -53,6 +57,7 @@ public sealed class CreateUserCommandHandler
         string userName,
         string email,
         string displayName,
+        string password,
         CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
@@ -60,6 +65,11 @@ public sealed class CreateUserCommandHandler
         AddRequiredAndLengthErrors(errors, "userName", userName, UserAccount.UserNameMaxLength);
         AddRequiredAndLengthErrors(errors, "email", email, UserAccount.EmailMaxLength);
         AddRequiredAndLengthErrors(errors, "displayName", displayName, UserAccount.DisplayNameMaxLength);
+
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        {
+            errors["password"] = ["Password must be at least 8 characters."];
+        }
 
         if (!string.IsNullOrWhiteSpace(email) && !IsValidEmail(email))
         {

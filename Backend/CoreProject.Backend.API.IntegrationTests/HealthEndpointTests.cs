@@ -8,7 +8,7 @@ public sealed class HealthEndpointTests : IClassFixture<CustomWebApplicationFact
 
     public HealthEndpointTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateAuthenticatedClient();
     }
 
     [Fact]

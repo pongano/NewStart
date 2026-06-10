@@ -1,3 +1,5 @@
+using CoreProject.Backend.API.Security;
+using CoreProject.Backend.Application.Common.Security;
 using CoreProject.Backend.Application.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -5,6 +7,7 @@ namespace CoreProject.Backend.API.Controllers;
 
 [ApiController]
 [Route("api/identity")]
+[RequirePermission(PermissionCodes.UsersManage)]
 public sealed class IdentityController : ControllerBase
 {
     private readonly GetIdentityModuleSummaryQueryHandler _handler;
