@@ -34,13 +34,12 @@
 - Acceptance:
   - backend can start with a real PostgreSQL database
   - initial migration is applied successfully
-- Progress:
-  - Docker Compose PostgreSQL setup prepared with host port `54320` and default database `coreproject_backend_dev`
-  - EF Core design-time factory now defaults to the same local development database
-  - local `dotnet-ef` tool manifest added
-  - PostgreSQL container started successfully and reported healthy
-  - initial EF Core migration applied successfully to the Docker database
-  - backend API started successfully and `/health` returned `Healthy`
+- Note:
+  - completed with local PostgreSQL on `localhost:5432`
+  - development database `coreproject_backend_dev` created
+  - migration applied successfully
+  - API verified through `/health` and `/api/system/info`
+  - Docker fallback documented in [DEV_DATABASE_SETUP.md](E:\Project\NewStart\DEV_DATABASE_SETUP.md)
 
 ### P0-02: Create Identity Module Skeleton
 - Status: `DONE`
@@ -53,13 +52,12 @@
 - Acceptance:
   - solution contains a clear `Identity` module skeleton
   - no architecture boundary violations
-- Progress:
-  - added Identity module placeholder namespaces in `Domain`, `Application`, `Infrastructure`, and `API`
-  - added placeholder `UserAccount` domain type without persistence mapping
-  - intentionally did not add DbContext members, EF configuration, migrations, endpoints, authentication, or JWT
+- Note:
+  - added `Identity` structure across `Domain`, `Application`, `Infrastructure`, and `API`
+  - added `UserAccount` skeleton entity, overview handler, controller, EF configuration, tests, and migration support
 
 ### P0-03: Create AccessControl Module Skeleton
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - create the first real module structure for `Role / Permission / Menu`
 - Work:
@@ -69,13 +67,16 @@
 - Acceptance:
   - solution contains a clear `AccessControl` module skeleton
   - module boundaries are ready for future CRUD and authorization logic
+- Note:
+  - added `AccessControl` structure across `Domain`, `Application`, `Infrastructure`, and `API`
+  - added `Role`, `Permission`, and `Menu` skeleton entities, overview handler, controller, EF configurations, tests, and migration support
 
 ## 5. Core Backend Tasks
 
 ### P1-01: Implement User Entity and Persistence
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
-  - add the first real `User` domain model
+  - enrich the `UserAccount` skeleton into the first real `User` domain model
 - Work:
   - define user entity
   - add EF configuration
@@ -88,62 +89,79 @@
   - `DisplayName`
   - `IsActive`
 - Acceptance:
-  - user table exists through migration
-  - user entity is accessible through persistence layer
+  - user model supports real create/read flows
+  - user persistence baseline is ready for admin use cases
+- Note:
+  - implemented real `UserAccount` create/list/get-by-id vertical slice
+  - no new migration was required because the existing `user_accounts` schema already supported the v1 fields
+  - validation now enforces required fields, max lengths, email format, and duplicate `UserName` / `Email`
 
 ### P1-02: Implement Role Entity and Persistence
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
-  - define `Role` as part of `AccessControl`
+  - enrich `Role` as part of `AccessControl`
 - Work:
-  - create role entity
-  - configure EF mapping
-  - prepare migration
+  - enrich role entity with shared max-length constants
+  - extend persistence contract through `IApplicationDbContext`
+  - implement role add/find/list/duplicate-code support in `ApplicationDbContext`
 - Acceptance:
-  - role table exists
-  - role model is ready for assignment to users later
+  - role model supports real admin workflows
+  - role is ready for assignment to users later
+- Note:
+  - completed as persistence-only foundation without adding role CRUD endpoints yet
+  - no new migration was required because the existing `roles` schema already matched the v1 shape
+  - added application unit tests for role persistence contract behavior
 
 ### P1-03: Implement Permission Entity and Persistence
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
-  - define permission structure for API / UI access control
+  - enrich permission structure for API / UI access control
 - Work:
-  - create permission entity
-  - define minimal permission code structure
-  - configure EF mapping
-  - prepare migration
+  - enrich permission entity with shared max-length constants
+  - define persistence-ready permission code contract
+  - extend `IApplicationDbContext` and `ApplicationDbContext` for permission operations
 - Acceptance:
-  - permission table exists
+  - permission model supports real admin workflows
   - permission model is ready for role mapping
+- Note:
+  - completed as persistence-only foundation without adding permission query or CRUD endpoints yet
+  - no new migration was required because the existing `permissions` schema already matched the v1 shape
+  - added application unit tests for permission persistence contract behavior
 
 ### P1-04: Implement Menu Entity and Persistence
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
-  - define menu structure for frontend navigation control
+  - enrich menu structure for frontend navigation control
 - Work:
-  - create menu entity
-  - define parent-child/menu ordering structure
-  - configure EF mapping
-  - prepare migration
+  - enrich menu entity with shared max-length constants
+  - define persistence-ready parent-child and ordering structure
+  - extend `IApplicationDbContext` and `ApplicationDbContext` for menu operations
 - Acceptance:
-  - menu table exists
+  - menu model supports real admin workflows
   - menu model is ready to be linked to permissions
+- Note:
+  - completed as persistence-only foundation without adding menu query or CRUD endpoints yet
+  - no new menu-only schema change was required because the existing `menus` schema already matched the v1 shape
+  - added application unit tests for menu persistence contract behavior
 
 ### P1-05: Implement User-Role / Role-Permission Relationships
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - establish the first useful access-control relationships
 - Work:
-  - define join entities or mappings
-  - configure EF relationships
-  - prepare migration
+  - define explicit join entities for `UserRole` and `RolePermission`
+  - configure EF relationships and composite keys
+  - create and apply migration for relationship tables
 - Acceptance:
   - user-role and role-permission structures are persisted correctly
+- Note:
+  - added `user_roles` and `role_permissions` tables through migration `20260610100533_AddMenuAndAccessControlRelationships`
+  - verified relationship tables were created in PostgreSQL and application tests passed
 
 ## 6. Application Layer Tasks
 
 ### P1-06: Create First User Management Use Cases
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - support first CRUD workflow for user management
 - Work:
@@ -153,18 +171,23 @@
   - optionally create `UpdateUserStatus`
 - Acceptance:
   - at least one create and one read flow work end-to-end
+- Note:
+  - completed with `CreateUser`, `GetUserById`, and `ListUsers`
 
 ### P1-07: Create First Role Management Use Cases
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - support basic role CRUD
 - Work:
   - create role create/list/get flows
 - Acceptance:
   - role endpoints can be tested end-to-end
+- Note:
+  - completed with `CreateRole`, `GetRoleById`, and `ListRoles`
+  - validation covers required fields, max lengths, and duplicate `Code`
 
 ### P1-08: Create First Permission / Menu Query Flows
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - expose permission and menu data for future admin UI
 - Work:
@@ -172,11 +195,14 @@
   - add DTOs
 - Acceptance:
   - permission and menu data can be retrieved through API
+- Note:
+  - completed with `ListPermissions` and `ListMenus`
+  - list responses use stable ordering from persistence/query handlers
 
 ## 7. API Layer Tasks
 
 ### P1-09: Add User Management Endpoints
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - expose first `User` APIs
 - Suggested endpoints:
@@ -185,9 +211,26 @@
   - `GET /api/users/{id}`
 - Acceptance:
   - endpoints compile, run, and return expected shapes
+- Note:
+  - implemented `POST /api/users`, `GET /api/users`, and `GET /api/users/{id}`
+  - validated success, duplicate, invalid email, and not-found scenarios through integration tests
+
+### P1-21: Add User Update/Delete Flows
+- Status: `DONE`
+- Goal:
+  - complete the first admin management cycle for `UserAccount`
+- Work:
+  - add update use case
+  - add delete use case
+  - expose `PUT` and `DELETE` endpoints
+- Acceptance:
+  - user update/delete compile, run, and are covered by tests
+- Note:
+  - implemented `PUT /api/users/{id}` and `DELETE /api/users/{id}`
+  - validated update success, delete success, duplicate-email validation, and standardized not-found responses through tests
 
 ### P1-10: Add Role Management Endpoints
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - expose first `Role` APIs
 - Suggested endpoints:
@@ -196,9 +239,137 @@
   - `GET /api/roles/{id}`
 - Acceptance:
   - endpoints compile, run, and return expected shapes
+- Note:
+  - implemented `POST /api/roles`, `GET /api/roles`, and `GET /api/roles/{id}`
+  - validated success, duplicate, list ordering, and not-found scenarios through integration tests
+
+### P1-12: Add Permission Management Endpoints
+- Status: `DONE`
+- Goal:
+  - expose first `Permission` management APIs
+- Suggested endpoints:
+  - `POST /api/permissions`
+  - `GET /api/permissions`
+  - `GET /api/permissions/{id}`
+- Acceptance:
+  - endpoints compile, run, and return expected shapes
+- Note:
+  - implemented first permission create/list/get flows and endpoints
+  - validated success, duplicate-code, list ordering, and not-found scenarios through integration tests
+
+### P1-13: Add Menu Management Endpoints
+- Status: `DONE`
+- Goal:
+  - expose first `Menu` management APIs
+- Suggested endpoints:
+  - `POST /api/menus`
+  - `GET /api/menus`
+  - `GET /api/menus/{id}`
+- Acceptance:
+  - endpoints compile, run, and return expected shapes
+- Note:
+  - implemented first menu create/list/get flows and endpoints
+  - validated success, duplicate-code, list ordering, and not-found scenarios through integration tests
+
+### P1-14: Implement Menu-Permission Relationships
+- Status: `DONE`
+- Goal:
+  - connect navigation visibility with permission rules
+- Work:
+  - define `MenuPermission` join entity
+  - configure EF relationship and migration
+  - expose first assign/list API flows
+- Acceptance:
+  - menu-permission links are persisted correctly and can be queried through API
+- Note:
+  - added `menu_permissions` table through migration `20260610104156_AddMenuPermissionRelationships`
+  - implemented assign/list flows under `/api/menus/{menuId}/permissions`
+
+### P1-15: Add Role Update/Delete Flows
+- Status: `DONE`
+- Goal:
+  - complete the first admin management cycle for `Role`
+- Work:
+  - add update use case
+  - add delete use case
+  - expose `PUT` and `DELETE` endpoints
+- Acceptance:
+  - role update/delete compile, run, and are covered by tests
+- Note:
+  - implemented `PUT /api/roles/{id}` and `DELETE /api/roles/{id}`
+  - validated update success, delete success, and duplicate-code validation through tests
+
+### P1-16: Add Permission Update/Delete Flows
+- Status: `DONE`
+- Goal:
+  - complete the first admin management cycle for `Permission`
+- Work:
+  - add update use case
+  - add delete use case
+  - expose `PUT` and `DELETE` endpoints
+- Acceptance:
+  - permission update/delete compile, run, and are covered by tests
+- Note:
+  - implemented `PUT /api/permissions/{id}` and `DELETE /api/permissions/{id}`
+  - validated update success, delete success, and duplicate-code validation through tests
+
+### P1-17: Add Menu Update/Delete Flows
+- Status: `DONE`
+- Goal:
+  - complete the first admin management cycle for `Menu`
+- Work:
+  - add update use case
+  - add delete use case
+  - expose `PUT` and `DELETE` endpoints
+- Acceptance:
+  - menu update/delete compile, run, and are covered by tests
+- Note:
+  - implemented `PUT /api/menus/{id}` and `DELETE /api/menus/{id}`
+  - validated update success, delete success, and child-menu delete rejection through tests
+
+### P1-18: Add User-Role Management Endpoints
+- Status: `DONE`
+- Goal:
+  - expose first admin APIs for assigning and querying roles by user
+- Suggested endpoints:
+  - `POST /api/users/{userId}/roles/{roleId}`
+  - `GET /api/users/{userId}/roles`
+  - `DELETE /api/users/{userId}/roles/{roleId}`
+- Acceptance:
+  - user-role assignment flows compile, run, and are covered by tests
+- Note:
+  - implemented assign/list/remove user-role flows end-to-end
+  - validated success, duplicate-link rejection, and remove success through unit and integration tests
+
+### P1-19: Add Role-Permission Management Endpoints
+- Status: `DONE`
+- Goal:
+  - expose first admin APIs for assigning and querying permissions by role
+- Suggested endpoints:
+  - `POST /api/roles/{roleId}/permissions/{permissionId}`
+  - `GET /api/roles/{roleId}/permissions`
+  - `DELETE /api/roles/{roleId}/permissions/{permissionId}`
+- Acceptance:
+  - role-permission assignment flows compile, run, and are covered by tests
+- Note:
+  - implemented assign/list/remove role-permission flows end-to-end
+  - validated success, duplicate-link rejection, and remove success through unit and integration tests
+
+### P1-20: Add User Access-Graph Query
+- Status: `DONE`
+- Goal:
+  - expose an admin query that shows a user's effective roles, permissions, and menus
+- Suggested endpoint:
+  - `GET /api/users/{userId}/access-graph`
+- Acceptance:
+  - access graph returns effective role, permission, and menu data through API
+- Note:
+  - implemented `GetUserAccessGraph` query and endpoint
+  - access graph derives permissions from assigned roles and menus from linked menu-permissions
+  - validated end-to-end through unit and integration tests
 
 ### P1-11: Standardize Validation/Error Responses for New Modules
-- Status: `TODO`
+- Status: `DONE`
 - Goal:
   - keep all future endpoints aligned with the current error contract
 - Work:
@@ -206,6 +377,10 @@
   - keep trace id / status / message structure consistent
 - Acceptance:
   - new modules do not introduce inconsistent error formats
+- Note:
+  - kept validation failures on the shared `ApiErrorResponse` contract through middleware
+  - standardized controller-generated `404` responses on the same contract for users, roles, permissions, menus, and relationship deletes
+  - added regression tests for standardized `400` and `404` payloads
 
 ## 8. Security Tasks
 
@@ -346,7 +521,8 @@
 - Expected result:
   - real database connected
   - first two real modules exist
-  - first `User` and `Role` entities are persisted
+  - first `User` slice is working end-to-end
+  - `Role` persistence is ready for role use cases and later relationship mapping
 
 ## 13. Update Rules For This Task File
 - When a task is started:
